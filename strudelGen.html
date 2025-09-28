@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>strudelGEN — Pattern builder for Strudel</title>
+  <style>
+    :root{
+      --bg:#0c0f20; --bg2:#0a0d1a;
+      --panel:#151937; --panel2:#10142d;
+      --ink:#edf0ff; --muted:#9aa3ce;
+      --accent:#7aa2ff; --accent-2:#76e0c0; --warn:#ffb86b; --danger:#ff6b8a;
+      --grid-gap:10px; --radius:16px; --shadow:0 14px 40px rgba(0,0,0,.35);
+      --ring:0 0 0 3px rgba(122,162,255,.22), 0 8px 30px rgba(10,20,40,.5);
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+      background:
+        radial-gradient(1200px 800px at 80% -10%, #1a1f44 0%, transparent 60%),
+        radial-gradient(1200px 900px at 10% 110%, #10223f 0%, transparent 60%),
+        linear-gradient(180deg, var(--bg) 0%, var(--bg2) 100%);
+      color:var(--ink);
+      display:flex; align-items:flex-start; justify-content:center; padding:26px;
+    }
+    .app{width:min(1120px, 100%);}
+
+    .header{
+      margin:0 0 18px 0; padding:18px 20px;
+      border:1px solid #242a52;
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.045) 0%, rgba(255,255,255,0) 100%),
+        linear-gradient(180deg, #151a3a 0%, #0f1430 100%);
+      border-radius:18px; box-shadow:var(--shadow);
+      backdrop-filter: blur(6px);
+    }
+    .title{margin:0 0 6px 0; font-size:24px; font-weight:900; letter-spacing:.2px}
+    .subtitle{margin:0; color:#aab1dd; font-size:14px}
+
+    .row{display:grid; gap:16px}
+    .row.cols{grid-template-columns: 1.2fr .9fr}
+    @media (max-width: 940px){ .row.cols{ grid-template-columns: 1fr } }
+
+    .card{
+      background:
+        linear-gradient(180deg, rgba(255,255,255,.04) 0%, rgba(255,255,255,0) 100%),
+        linear-gradient(180deg, var(--panel) 0%, var(--panel2) 100%);
+      border:1px solid #23294f; border-radius:var(--radius); box-shadow:var(--shadow);
+    }
+    .card h2{ margin:0 0 8px 0; font-size:18px; color:#dfe4ff; display:flex; align-items:center; gap:10px }
+    .card .content{padding:20px}
+    .step-badge{
+      display:inline-flex; align-items:center; gap:8px; padding:5px 12px;
+      border-radius:999px; font-weight:900; letter-spacing:.35px; font-size:11px; text-transform:uppercase;
+      background:linear-gradient(180deg, #0f1433, #0b0f28);
+      color:#dfe6ff; border:1px solid #2b3364; box-shadow:inset 0 0 0 2px rgba(122,162,255,.12)
+    }
+    .step-desc{margin:6px 0 12px 0; color:#a2a9d4; font-size:13px}
+
+    .controls{display:grid; grid-template-columns: repeat(6, minmax(0,1fr)); gap:12px; align-items:end}
+    .controls label{font-size:12px; color:var(--muted); display:block; margin-bottom:6px}
+    .controls input[type="number"], .controls select{
+      width:100%; background:#0d1128; color:#0ff; color:var(--ink);
+      border:1px solid #2a3160; border-radius:12px; padding:12px 13px; outline:none;
+      transition:.2s border, .2s box-shadow, .2s transform;
+    }
+    .controls input[type="number"]:focus, .controls select:focus{ border-color:#4550a8; box-shadow:var(--ring); transform:translateY(-1px) }
+    .controls .btn{
+      cursor:pointer; border:0; padding:13px 16px; border-radius:14px;
+      background:linear-gradient(180deg, #2a56ff, #1b43cc);
+      color:white; font-weight:800; letter-spacing:.2px; box-shadow:0 10px 30px rgba(34,64,200,.35);
+      transition:.18s transform, .2s filter;
+    }
+    .controls .btn.secondary{
+      background:linear-gradient(180deg, #222a53, #1a2146);
+      color:#cfd6ff; border:1px solid #2f3563; box-shadow:none
+    }
+    .controls .btn:hover{ transform:translateY(-1px); filter:saturate(1.1) }
+    .controls .btn:active{ transform:translateY(0) }
+    .controls .btn:disabled{opacity:.55; cursor:not-allowed}
+
+    .statusbar{
+      display:flex; align-items:center; justify-content:space-between; gap:14px; font-size:14px;
+      padding:12px 14px; border-top:1px solid #24294a; background:#101437;
+      border-bottom-left-radius:var(--radius); border-bottom-right-radius:var(--radius)
+    }
+    .pill{ padding:5px 12px; border-radius:999px; border:1px solid #2b3056; color:#cfd4ff; background:#0c0f26; font-size:12px }
+    /* Countdown colors */
+    .pill.countdown { font-weight: 700; font-size: 18px; }
+    .pill.countdown.color-3 { background:#2a56ff; color:#fff; }
+    .pill.countdown.color-2 { background:#ffb86b; color:#000; }
+    .pill.countdown.color-1 { background:#ff6b8a; color:#fff; }
+
+    .seq{display:grid; grid-template-rows:auto 1fr; gap:14px}
+    .grid{display:grid; gap:var(--grid-gap)}
+    .cell{
+      position:relative; aspect-ratio:1 / 1; background: #0b0f24; border:1px solid #242a50; border-radius:12px;
+      display:flex; align-items:center; justify-content:center; color:#a8b6ff; font-weight:800; font-variant-numeric:tabular-nums;
+      user-select:none; transition:.15s border,.15s transform;
+    }
+    .cell .v{opacity:.95; transform:translateY(-1px)}
+    .cell[data-rest="true"]{ color:#55619a }
+    .cell[data-active="true"]{
+      outline:2px solid #7aa2ff; box-shadow:0 0 0 3px rgba(122,162,255,.25) inset, 0 10px 24px rgba(10,30,80,.35);
+      transform:translateY(-1px);
+    }
+    .cell[data-hit="true"]::after{
+      content:""; position:absolute; inset:0; border-radius:12px;
+      background:radial-gradient(circle at 50% 50%, rgba(118,224,192,.38), rgba(118,224,192,0) 55%);
+      animation: ping .38s ease-out
+    }
+    @keyframes ping{ from{opacity:1} to{opacity:0} }
+    .cell.beat-start{ border-left-width:3px; border-left-color:#3a4184 }
+
+    .readout textarea{
+      width:100%; min-height:140px; background:#0b0f24; border:1px solid #2a3160; border-radius:12px; color:#e6ebff; padding:12px;
+      resize:vertical; font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      box-shadow:inset 0 6px 24px rgba(0,0,0,.25);
+    }
+    .readout .bar{ display:flex; gap:10px; margin-top:12px }
+    .readout .bar .btn{
+      cursor:pointer; border:0; padding:11px 14px; border-radius:12px;
+      background:linear-gradient(180deg, #222a53, #1a2146);
+      color:#cfd6ff; border:1px solid #2f3563; font-weight:700;
+      transition:.18s transform, .2s filter;
+    }
+    .readout .bar .btn:hover{ transform:translateY(-1px) }
+    .legend{ font-size:12px; color:var(--muted); display:flex; gap:16px; align-items:center }
+    .legend .dot{ width:10px; height:10px; border-radius:50%; display:inline-block; margin-right:6px; background:#7aa2ff; outline:1px solid #2a2f52 }
+    .legend .dot.hit{ background:#76e0c0 }
+    .legend kbd{ background:#0b0e22; border:1px solid #2a2f52; border-bottom-color:#1a1f3f; padding:2px 6px; border-radius:6px; color:#dfe4ff }
+    .small{ font-size:12px; color:#9aa3ce }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <header class="header" aria-label="About this tool">
+      <h1 class="title">strudelGEN — Generate playable Strudel patterns fast</h1>
+      <p class="subtitle">Step 1: record a one-cycle numeric sequence. Step 2: copy the ready-to-paste Strudel syntax in the Strudel repl: https://strudel.cc</p>
+    </header>
+
+    <div class="row cols">
+      <!-- STEP 1 -->
+      <section class="card seq" aria-label="Step 1: Build your sequence">
+        <div class="content">
+          <h2><span class="step-badge">Step 1</span> Build your sequence</h2>
+          <p class="step-desc">Choose tempo, cycle length, and quantization. Click <strong>Start</strong>, wait for the 3-2-1 beeps, then tap digits (0–9). Your hits are snapped to the grid.</p>
+
+          <div class="controls" style="margin-bottom:14px">
+            <div>
+              <label for="bpm">Tempo (BPM)</label>
+              <input id="bpm" type="number" min="20" max="300" value="120" />
+            </div>
+            <div>
+              <label for="beats">Cycle length (beats)</label>
+              <input id="beats" type="number" min="1" max="16" value="8" />
+            </div>
+            <div>
+              <label for="quant">Quantize</label>
+              <select id="quant">
+                <option value="4">1/4 notes</option>
+                <option value="8">1/8 notes</option>
+                <option value="16" selected>1/16 notes</option>
+              </select>
+            </div>
+            <div>
+              <label for="mode">Input mode</label>
+              <select id="mode">
+                <option value="overwrite" selected>Overwrite</option>
+                <option value="keep">Keep (ignore if filled)</option>
+              </select>
+            </div>
+            <div>
+              <button id="startBtn" class="btn" title="Countdown from 3, then record one cycle">Start ▶</button>
+            </div>
+            <div>
+              <button id="clearBtn" class="btn secondary" title="Clear the sequence">Clear</button>
+            </div>
+          </div>
+
+          <div class="legend" style="margin-bottom:10px">
+            <span><span class="dot"></span> Current Step</span>
+            <span><span class="dot hit"></span> Key Hit</span>
+            <span>Type digits <kbd>0–9</kbd> during recording window</span>
+          </div>
+
+          <div id="grid" class="grid" aria-live="polite" aria-label="Step grid"></div>
+        </div>
+        <div class="statusbar">
+          <div>
+            <span class="pill" id="status">Idle</span>
+            <span class="pill" id="countdown" hidden>3</span>
+          </div>
+          <div class="small">Tip: The metronome clicks each beat (accent on 1). Click cells to toggle rests.</div>
+        </div>
+      </section>
+
+      <!-- STEP 2 -->
+      <section class="card readout" aria-label="Step 2: Copy your Strudel pattern">
+        <div class="content">
+          <h2><span class="step-badge">Step 2</span> Copy the Strudel pattern</h2>
+          <p class="step-desc">Pick an output format. Wrapped modes add a first line <code>setcpm(bpm/beats)</code>. You can also append a musical <strong>scale</strong> and <strong>sound</strong>.</p>
+
+          <div class="controls" style="grid-template-columns: 1fr 1fr; margin:0 0 10px 0">
+            <div>
+              <label for="wrapper">Output format</label>
+              <select id="wrapper">
+                <option value="raw">raw tokens (advanced)</option>
+                <option value="n" selected>n "…"</option>
+                <option value="note">note "…"</option>
+              </select>
+            </div>
+            <div>
+              <label for="restsPolicy">Rests</label>
+              <select id="restsPolicy">
+                <option value="explicit" selected>explicit ~ in string</option>
+                <option value="drop">drop (compress time)</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Scale + Sound selectors (populated by JS) -->
+          <div class="controls" style="grid-template-columns: 1fr 1fr 1fr; margin:0 0 10px 0">
+            <div>
+              <label for="scaleRoot">Scale root (with optional octave)</label>
+              <select id="scaleRoot"></select>
+            </div>
+            <div>
+              <label for="scaleType">Scale type</label>
+              <select id="scaleType"></select>
+            </div>
+            <div>
+              <label for="soundName">Sound</label>
+              <select id="soundName"></select>
+            </div>
+          </div>
+
+          <textarea id="out" spellcheck="false" aria-label="Strudel pattern output"></textarea>
+          <div class="bar">
+            <button id="copyBtn" class="btn">Copy to clipboard</button>
+          </div>
+          <p class="small" style="margin-top:10px">
+            Scales are <code>root:type</code> (e.g., <code>C:minor</code>, <code>A2:minor pentatonic</code>). Sounds include synth waveforms and common default drum sample names. You can extend the lists below by editing the arrays in code.
+          </p>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <script>
+  (() => {
+    // ----- State -----
+    const els = {
+      bpm: document.getElementById('bpm'),
+      beats: document.getElementById('beats'),
+      quant: document.getElementById('quant'),
+      mode: document.getElementById('mode'),
+      grid: document.getElementById('grid'),
+      startBtn: document.getElementById('startBtn'),
+      clearBtn: document.getElementById('clearBtn'),
+      status: document.getElementById('status'),
+      countdown: document.getElementById('countdown'),
+      out: document.getElementById('out'),
+      copyBtn: document.getElementById('copyBtn'),
+      wrapper: document.getElementById('wrapper'),
+      restsPolicy: document.getElementById('restsPolicy'),
+      scaleRoot: document.getElementById('scaleRoot'),
+      scaleType: document.getElementById('scaleType'),
+      soundName: document.getElementById('soundName'),
+    };
+
+    // ===== OPTIONS: extend these arrays to add more =====
+    const SCALE_ROOTS = [
+      // put "" as "(none)" if you want a no-scale option
+      "C","C#","Db","D","D#","Eb","E","F","F#","Gb","G","G#","Ab","A","A#","Bb","B",
+      "C2","D2","E2","F2","G2","A2","B2",
+      "C3","D3","E3","F3","G3","A3","B3",
+      "C4","D4","E4","F4","G4","A4","B4"
+    ];
+
+    const SCALE_TYPES = [
+      "minor","major","ionian","aeolian","dorian","phrygian","lydian","mixolydian","locrian",
+      "harmonic minor","melodic minor",
+      "major pentatonic","minor pentatonic",
+      "blues","major blues","minor blues",
+      "whole tone","chromatic",
+      "diminished","double harmonic","flamenco","phrygian dominant","lydian dominant","mixolydian b6"
+    ];
+
+    const SOUND_OPTIONS = [
+      // requested default & friends
+      "jazz",
+      // synths / instruments
+      "sine","triangle","square","sawtooth","piano",
+      // common drum/sample names (Dirt defaults)
+      "bd","sd","rim","hh","oh","lt","mt","ht","rd","cr"
+    ];
+
+    // ===== DEFAULTS =====
+    const DEFAULT_ROOT = "C";
+    const DEFAULT_TYPE = "minor";
+    const DEFAULT_SOUND = "jazz";
+
+    // Populate <select> helpers
+    function populateSelect(selectEl, options, { includeNone=false, noneLabel="(none)", defaultValue=null }={}){
+      selectEl.innerHTML = "";
+      if (includeNone){
+        const opt = document.createElement('option'); opt.value = ""; opt.textContent = noneLabel;
+        selectEl.appendChild(opt);
+      }
+      options.forEach(v=>{
+        const opt = document.createElement('option');
+        opt.value = v; opt.textContent = v;
+        if (defaultValue && v === defaultValue) opt.selected = true;
+        selectEl.appendChild(opt);
+      });
+      // If defaultValue not in list, keep first option selected
+      if (defaultValue && !options.includes(defaultValue) && includeNone === false){
+        selectEl.selectedIndex = 0;
+      }
+    }
+
+    // Quantize a timestamp to the nearest step center (midpoint quantization)
+function timeToStepIndex(elapsedMs){
+  // round to nearest step; clamp to [0, totalSteps-1]
+  const idx = Math.round(elapsedMs / msPerStep);
+  return clamp(idx, 0, totalSteps - 1);
+}
+
+
+    // subdivisions per beat: 1, 2, 4 for 1/4, 1/8, 1/16
+    function subdivisionsPerBeat() {
+      const q = parseInt(els.quant.value, 10); // 4|8|16
+      return Math.max(1, q / 4);
+    }
+
+    let totalSteps = 16;        // beats * subdivisions
+    let seq = [];               // '' empty | '~' rest | '0'..'9'
+    let playing = false;
+    let stepIndex = 0;
+    let raf = 0;
+    let startedAt = 0;
+    let msPerStep = 0;
+    let countingDown = false;   // are we in the 3-2-1?
+let preRollDigit = null;    // last digit pressed during countdown
+
+
+    // ----- Metronome (Web Audio) -----
+    let audio = null;
+    function ensureAudio() {
+      if (!audio) {
+        const Ctx = window.AudioContext || window.webkitAudioContext;
+        audio = new Ctx();
+      }
+      if (audio.state === 'suspended') audio.resume();
+      return audio;
+    }
+    function clickSound({ accent = false } = {}) {
+      const ac = ensureAudio();
+      const now = ac.currentTime;
+      const osc = ac.createOscillator();
+      const gain = ac.createGain();
+
+      const dur = 0.045;
+      const baseFreq = accent ? 1800 : 1100;
+      const startGain = accent ? 0.25 : 0.16;
+
+      osc.frequency.value = baseFreq;
+      osc.type = 'square';
+
+      gain.gain.setValueAtTime(0, now);
+      gain.gain.linearRampToValueAtTime(startGain, now + 0.001);
+      gain.gain.exponentialRampToValueAtTime(0.0008, now + dur);
+
+      osc.connect(gain);
+      gain.connect(ac.destination);
+
+      osc.start(now);
+      osc.stop(now + dur + 0.01);
+    }
+
+    // ----- Helpers -----
+    function clamp(n, a, b){ return Math.min(Math.max(n, a), b); }
+
+    function recalcGrid() {
+      const beats = clamp(parseInt(els.beats.value, 10) || 4, 1, 16);
+      els.beats.value = String(beats);
+
+      const sub = subdivisionsPerBeat();
+      totalSteps = beats * sub;
+
+      seq = Array.from({length: totalSteps}, (_, i) => seq[i] ?? '');
+
+      // Render grid with dynamic columns
+      els.grid.innerHTML = '';
+      els.grid.style.gridTemplateColumns = `repeat(${totalSteps}, 1fr)`;
+      const frag = document.createDocumentFragment();
+      for (let i=0; i<totalSteps; i++){
+        const cell = document.createElement('div');
+        cell.className = 'cell';
+        cell.dataset.index = i;
+        cell.dataset.rest = String(seq[i] === '~');
+        if (i % sub === 0) cell.classList.add('beat-start');
+        const v = document.createElement('div');
+        v.className = 'v';
+        v.textContent = seq[i] && seq[i] !== '~' ? seq[i] : '';
+        cell.appendChild(v);
+        frag.appendChild(cell);
+      }
+      els.grid.appendChild(frag);
+      updateOutput();
+      paintActive();
+    }
+
+    function paintActive(){
+      const cells = els.grid.children;
+      for (let i=0;i<cells.length;i++){
+        cells[i].dataset.active = (i === stepIndex && playing) ? 'true' : 'false';
+      }
+    }
+
+    function computeMsPerStep(){
+      const bpm = clamp(parseInt(els.bpm.value, 10) || 120, 20, 300);
+      els.bpm.value = String(bpm);
+      const sub = subdivisionsPerBeat();
+      const msPerBeat = 60000 / bpm;
+      msPerStep = msPerBeat / sub;
+    }
+
+    function setStatus(s){ els.status.textContent = s; }
+    function showCountdown(n){
+      els.countdown.hidden = false;
+      els.countdown.textContent = String(n);
+      els.countdown.className = "pill countdown color-" + n; // new line
+    }
+    function hideCountdown(){
+  els.countdown.hidden = true;
+  els.countdown.className = "pill countdown";
+}
+
+    function flashHit(idx){
+      const cell = els.grid.children[idx];
+      if (!cell) return;
+      cell.dataset.hit = 'true';
+      setTimeout(()=>{ cell.dataset.hit = 'false'; }, 200);
+    }
+
+    // Convert to Strudel string (with optional header + chain ops)
+    function toStrudel(seqArr){
+      const beats  = clamp(parseInt(els.beats.value, 10) || 4, 1, 16);
+      const bpm    = clamp(parseInt(els.bpm.value, 10) || 120, 20, 300);
+      const sub    = subdivisionsPerBeat();
+      const policy = els.restsPolicy?.value || 'explicit';
+      const wrap   = els.wrapper?.value || 'n';
+
+      // per-beat group build
+      const perBeat = [];
+      for (let b=0; b<beats; b++){
+        const start = b * sub;
+        const slice = seqArr.slice(start, start + sub);
+        const norm  = slice.map(s => (s === '' ? '~' : String(s).trim()));
+
+        if (sub === 1){
+          perBeat.push(norm[0]);
+        } else {
+          const allRests = norm.every(t => t === '~');
+          perBeat.push(allRests ? '~' : `[${norm.join(' ')}]`);
+        }
+      }
+
+      let raw;
+      if (policy === 'drop'){
+        // global compression: remove all rests and flatten
+        const flat = [];
+        for (let b=0; b<beats; b++){
+          const start = b * sub;
+          for (let i=0; i<sub; i++){
+            const v = seqArr[start + i];
+            const t = (v === '' ? '~' : String(v).trim());
+            if (t !== '~' && t !== '') flat.push(t);
+          }
+        }
+        raw = flat.join(' ').trim();
+      } else {
+        raw = perBeat.join(' ').replace(/\s+/g,' ').trim();
+      }
+
+      if (!raw) return '';
+
+      // Build optional .scale() and .sound() chains
+      let chain = '';
+      const root = (els.scaleRoot?.value || '').trim();
+      const type = (els.scaleType?.value || '').trim();
+      if (root && type){
+        chain += `.scale("${root}:${type}")`;
+      }
+      const sound = (els.soundName?.value || '').trim();
+      if (sound){
+        chain += `.sound("${sound}")`;
+      }
+
+      if (wrap === 'raw'){
+        // raw tokens: no header, no chain (not attachable)
+        return raw;
+      } else {
+        const main    = `${wrap}("${raw}")${chain}`;
+        const cpmLine = `setcpm(${bpm}/${beats})`;
+        return `${cpmLine}\n${main}`;
+      }
+    }
+
+    function updateOutput(){
+      els.out.value = toStrudel(seq);
+      // Update cell labels & rest flags
+      for (let i=0;i<els.grid.children.length;i++){
+        const cell = els.grid.children[i];
+        const v = cell.querySelector('.v');
+        const s = seq[i];
+        v.textContent = s && s !== '~' ? s : '';
+        cell.dataset.rest = String(s === '~');
+      }
+    }
+
+    function clearAll(){
+      seq = Array.from({length: totalSteps}, ()=>'');
+      updateOutput();
+    }
+
+    // ----- Transport -----
+    function beginCountdownThenRecord(){
+      if (playing) return;
+
+      ensureAudio();
+      computeMsPerStep();      // make sure timing is current
+      setStatus('Get ready…');
+
+      countingDown = true;     // <<< arm pre-roll
+      preRollDigit = null;
+
+      let n = 3;
+      showCountdown(n);
+      clickSound({ accent:false });
+
+      const tick = () => {
+        if (n <= 1){
+          hideCountdown();
+          clickSound({ accent:true });
+          startOneCycleRecord();  // will commit preRollDigit to step 0
+          countingDown = false;   // <<< disarm
+          return;
+        }
+        n--;
+        showCountdown(n);
+        clickSound({ accent:false });
+        setTimeout(tick, 1000);
+      };
+      setTimeout(tick, 1000);
+    }
+
+
+    function startOneCycleRecord(){
+      computeMsPerStep();
+      stepIndex = 0;
+      playing = true;
+      setStatus('Recording 1 cycle');
+      startedAt = performance.now();
+
+      // If a digit was hit during countdown, place it on step 0 now.
+      if (preRollDigit !== null){
+        const mode = els.mode.value;
+        if (!(mode === 'keep' && seq[0] && seq[0] !== '~')){
+          seq[0] = preRollDigit;
+          flashHit(0);
+          updateOutput();
+        }
+        preRollDigit = null; // clear buffer
+      }
+
+      const totalDuration = totalSteps * msPerStep;
+      const stopAt = startedAt + totalDuration;
+      const sub = subdivisionsPerBeat();
+      clickSound({ accent:true }); // downbeat
+
+      function loop(now){
+        const elapsed = now - startedAt;
+        const idx = Math.floor(elapsed / msPerStep);
+        if (idx !== stepIndex){
+          stepIndex = clamp(idx, 0, totalSteps - 1);
+          paintActive();
+          if (stepIndex % sub === 0){
+            const isDownbeat = (stepIndex === 0);
+            clickSound({ accent: isDownbeat });
+          }
+        }
+        if (now >= stopAt){
+          playing = false; stepIndex = 0; paintActive(); setStatus('Done'); updateOutput(); cancelAnimationFrame(raf); return;
+        }
+        raf = requestAnimationFrame(loop);
+      }
+      raf = requestAnimationFrame(loop);
+    }
+
+
+    // ----- Input handling -----
+    function isDigitKey(e){
+      return (/^Digit[0-9]$/.test(e.code) || /^Numpad[0-9]$/.test(e.code));
+    }
+
+    function onKeydown(e){
+      const isDigit = /^Digit[0-9]$/.test(e.code) || /^Numpad[0-9]$/.test(e.code);
+      if (!isDigit) return;
+
+      // If countdown is active, just remember the latest digit and exit.
+      if (countingDown){
+        preRollDigit = e.key;   // '0'..'9'
+        return;
+      }
+
+      if (!playing) return;
+
+      const val = e.key;
+      const mode = els.mode.value;
+
+      // Use your existing quantization logic here (floor/round/helper)
+      const now = performance.now();
+      const elapsed = now - startedAt;
+      const idx = Math.round(elapsed / msPerStep); // or your timeToStepIndex(...)
+      if (idx < 0 || idx >= totalSteps) return;
+      if (mode === 'keep' && seq[idx] && seq[idx] !== '~') return;
+
+      seq[idx] = val;
+      flashHit(idx);
+      updateOutput();
+    }
+
+
+
+    function onCellClick(e){
+      const cell = e.target.closest('.cell');
+      if (!cell) return;
+      const i = parseInt(cell.dataset.index, 10);
+      if (!Number.isFinite(i)) return;
+      if (seq[i] === '') seq[i] = '~'; else if (seq[i] === '~') seq[i] = ''; else seq[i] = '';
+      updateOutput();
+    }
+
+    // ----- Init -----
+    function recalcAll(){ computeMsPerStep(); recalcGrid(); }
+
+    // populate selects + defaults
+    populateSelect(els.scaleRoot, SCALE_ROOTS, { includeNone:false, defaultValue: DEFAULT_ROOT });
+    populateSelect(els.scaleType, SCALE_TYPES, { includeNone:false, defaultValue: DEFAULT_TYPE });
+    populateSelect(els.soundName, SOUND_OPTIONS, { includeNone:false, defaultValue: DEFAULT_SOUND });
+
+    recalcAll();               // build grid
+    updateOutput();            // show default output once
+
+    // Listeners
+    els.quant.addEventListener('change', recalcAll);
+    els.beats.addEventListener('change', recalcAll);
+    els.bpm.addEventListener('change', computeMsPerStep);
+
+    els.startBtn.addEventListener('click', beginCountdownThenRecord);
+    els.clearBtn.addEventListener('click', clearAll);
+
+    els.copyBtn.addEventListener('click', async () => {
+      const s = els.out.value.trim();
+      try { await navigator.clipboard.writeText(s); els.copyBtn.textContent = 'Copied!'; setTimeout(()=> els.copyBtn.textContent = 'Copy to clipboard', 1200); } catch(err){ console.warn(err); }
+    });
+
+    els.wrapper.addEventListener('change', updateOutput);
+    els.restsPolicy.addEventListener('change', updateOutput);
+    els.scaleRoot.addEventListener('change', updateOutput);
+    els.scaleType.addEventListener('change', updateOutput);
+    els.soundName.addEventListener('change', updateOutput);
+
+    document.addEventListener('keydown', onKeydown);
+    els.grid.addEventListener('click', onCellClick);
+
+    // Accessibility: focus outlines for buttons only when keyboard navigating
+    (function focusVisiblePolyfill(){
+      function onMouseDown(){ document.body.classList.add('using-mouse'); }
+      function onKeyDown(){ document.body.classList.remove('using-mouse'); }
+      document.addEventListener('mousedown', onMouseDown);
+      document.addEventListener('keydown', onKeyDown);
+    })();
+  })();
+  </script>
+</body>
+</html>
