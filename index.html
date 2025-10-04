@@ -137,7 +137,6 @@
   <div class="app">
     <header class="header" aria-label="About this tool">
       <h1 class="title">strudelGEN — Generate playable Strudel patterns fast</h1>
-      <p class="subtitle">Step 1: record a one-cycle numeric sequence. Step 2: copy the ready-to-paste Strudel syntax in the Strudel repl: https://strudel.cc</p>
     </header>
 
     <div class="row cols">
@@ -145,9 +144,15 @@
       <section class="card seq" aria-label="Step 1: Build your sequence">
         <div class="content">
           <h2><span class="step-badge">Step 1</span> Build your sequence</h2>
-          <p class="step-desc">Choose tempo, cycle length, and quantization. Click <strong>Start</strong>, wait for the 3-2-1 beeps, then tap digits (0–9). Your hits are snapped to the grid.</p>
+          <p class="step-desc">Click <strong>Start</strong>, wait for the 3-2-1 beeps, then tap digits (0–9). Your hits are snapped to the grid.</p>
 
           <div class="controls" style="margin-bottom:14px">
+            <div>
+              <button id="startBtn" class="btn" title="Countdown from 3, then record one cycle">Start ▶</button>
+            </div>
+            <div>
+              <button id="clearBtn" class="btn secondary" title="Clear the sequence">Clear</button>
+            </div>
             <div>
               <label for="bpm">Tempo (BPM)</label>
               <input id="bpm" type="number" min="20" max="300" value="120" />
@@ -171,12 +176,7 @@
                 <option value="keep">Keep (ignore if filled)</option>
               </select>
             </div>
-            <div>
-              <button id="startBtn" class="btn" title="Countdown from 3, then record one cycle">Start ▶</button>
-            </div>
-            <div>
-              <button id="clearBtn" class="btn secondary" title="Clear the sequence">Clear</button>
-            </div>
+
           </div>
 
           <div class="legend" style="margin-bottom:10px">
@@ -192,7 +192,6 @@
             <span class="pill" id="status">Idle</span>
             <span class="pill" id="countdown" hidden>3</span>
           </div>
-          <div class="small">Tip: The metronome clicks each beat (accent on 1). Click cells to toggle rests.</div>
         </div>
       </section>
 
@@ -200,7 +199,6 @@
       <section class="card readout" aria-label="Step 2: Copy your Strudel pattern">
         <div class="content">
           <h2><span class="step-badge">Step 2</span> Copy the Strudel pattern</h2>
-          <p class="step-desc">Pick an output format. Wrapped modes add a first line <code>setcpm(bpm/beats)</code>. You can also append a musical <strong>scale</strong> and <strong>sound</strong>.</p>
 
           <div class="controls" style="grid-template-columns: 1fr 1fr; margin:0 0 10px 0">
             <div>
@@ -240,9 +238,7 @@
           <div class="bar">
             <button id="copyBtn" class="btn">Copy to clipboard</button>
           </div>
-          <p class="small" style="margin-top:10px">
-            Scales are <code>root:type</code> (e.g., <code>C:minor</code>, <code>A2:minor pentatonic</code>). Sounds include synth waveforms and common default drum sample names. You can extend the lists below by editing the arrays in code.
-          </p>
+
         </div>
       </section>
     </div>
@@ -504,7 +500,7 @@ let preRollDigit = null;    // last digit pressed during countdown
         // raw tokens: no header, no chain (not attachable)
         return raw;
       } else {
-        const main    = `${wrap}("${raw}")${chain}`;
+        const main    = `$:${wrap}("${raw}")${chain}`;
         const cpmLine = `setcpm(${bpm}/${beats})`;
         return `${cpmLine}\n${main}`;
       }
